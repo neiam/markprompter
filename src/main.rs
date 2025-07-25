@@ -1,6 +1,6 @@
 use comrak::{markdown_to_html, ComrakOptions};
 use eframe::{egui, epaint::Color32, App, CreationContext};
-use egui::ScrollArea;
+use egui::{RichText, ScrollArea};
 use egui_material_icons::icons::*;
 use rfd::FileDialog;
 use serde::{Deserialize, Serialize};
@@ -9,6 +9,7 @@ use std::path::PathBuf;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 use std::time::{Duration, Instant};
+// use egui::WidgetText::RichText;
 
 // Theme configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -499,6 +500,12 @@ impl App for MarkPrompter {
         style.visuals.window_fill = bg_color;
         ctx.set_style(style);
 
+        let text_color_z = Color32::from_rgb(
+            self.current_theme.heading_colors[0][0],
+            self.current_theme.heading_colors[0][1],
+            self.current_theme.heading_colors[0][2],
+        );
+
         egui::CentralPanel::default().show(ctx, |ui| {
             // Use columns with custom width ratio - give more space to controls panel
             ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui| {
@@ -507,7 +514,8 @@ impl App for MarkPrompter {
                     egui::Layout::top_down(egui::Align::LEFT),
                     |ui| {
                         // Left column - Controls panel
-                        ui.heading("MP");
+                        ui.colored_label(text_color_z,RichText::new("MarkPrompter", ).size(32.0));
+
                         ui.add_space(10.0);
 
                         // File controls
@@ -656,7 +664,7 @@ impl App for MarkPrompter {
                         ui.heading("Theme");
                         ui.add_space(5.0);
 
-                        egui::ComboBox::from_label("Select Theme")
+                        egui::ComboBox::from_label("")
                             .selected_text(self.current_theme.name.clone())
                             .show_ui(ui, |ui| {
                                 for theme in &self.available_themes {
@@ -800,7 +808,7 @@ impl App for MarkPrompter {
                                         }
                                     });
                             } else {
-                                ui.colored_label(text_color, "Open a markdown file to begin.");
+                                ui.colored_label(text_color_z, RichText::new("Open a markdown file to begin.").size(48.0));
                             }
                         });
 

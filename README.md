@@ -39,9 +39,9 @@ A professional Rust-based markdown teleprompter with automatic scrolling, live p
 - **9 Built-in Themes**: 
   - Light - Clean and bright for well-lit environments
   - Dark - Easy on the eyes for extended use
-  - Solarized - Popular color scheme with excellent contrast
-  - After Dark - Purple-based theme with vibrant accents
-  - Her - Warm red tones inspired by the movie
+  - Solarized - A Popular color scheme
+  - After Dark - Purple-based theme 
+  - Her - Warm red tones
   - Forest - Natural green palette
   - Sky - Cool blue theme
   - Clays - Earthy brown tones
