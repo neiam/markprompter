@@ -34,7 +34,7 @@ jobs:
         run: |
           if command -v apt-get &> /dev/null; then
             sudo apt-get update
-            sudo apt-get install -y pkg-config libssl-dev gtk3-dev gdk-pixbuf-dev pango-dev
+            sudo apt-get install -y pkg-config libssl-dev gtk3-dev libgdk-pixbuf-2.0-dev libpango1.0-dev
           elif command -v yum &> /dev/null; then
             sudo yum install -y pkgconfig openssl-devel gtk3-devel gdk-pixbuf-devel pango-devel
           elif command -v dnf &> /dev/null; then
@@ -136,7 +136,7 @@ jobs:
         run: |
           if command -v apt-get &> /dev/null; then
             sudo apt-get update
-            sudo apt-get install -y pkg-config libssl-dev gtk3-dev gdk-pixbuf-dev pango-dev
+            sudo apt-get install -y pkg-config libssl-dev gtk3-dev libgdk-pixbuf-2.0-dev libpango1.0-dev
           elif command -v yum &> /dev/null; then
             sudo yum install -y pkgconfig openssl-devel gtk3-devel gdk-pixbuf-devel pango-devel
           elif command -v dnf &> /dev/null; then
