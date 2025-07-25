@@ -72,29 +72,6 @@ jobs:
       - name: Check
         run: cargo check
 
-      - name: Log in to the Container registry
-        if: runner.os == 'Linux' && !contains(matrix.runner, 'self-hosted')
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata (tags, labels) for Docker
-        if: runner.os == 'Linux' && !contains(matrix.runner, 'self-hosted')
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-
-      - name: Build and push Docker image
-        if: runner.os == 'Linux' && !contains(matrix.runner, 'self-hosted')
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
 
   release:
     name: Release
