@@ -1,0 +1,17 @@
+[package]
+name = "markprompter"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+egui = "0.24.1"
+eframe = "0.24.1"
+pollster = "0.3.0"
+rfd = "0.12.1"
+markdown = "1.0.0-alpha.14"
+comrak = "0.19.0"
+toml = "0.8.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+chrono = "0.4"
+egui_material_icons = "0.4.0"
