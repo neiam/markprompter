@@ -238,7 +238,7 @@ impl MarkPrompter {
                             let mut content = String::new();
                             let mut found_closing = false;
 
-                            while let Some(inner_ch) = chars.next() {
+                            for inner_ch in chars.by_ref() {
                                 if inner_ch == ch {
                                     found_closing = true;
                                     break;
@@ -290,7 +290,7 @@ impl MarkPrompter {
                     let mut content = String::new();
                     let mut found_closing = false;
 
-                    while let Some(inner_ch) = chars.next() {
+                    for inner_ch in chars.by_ref() {
                         if inner_ch == '`' {
                             found_closing = true;
                             break;
@@ -364,8 +364,7 @@ impl MarkPrompter {
                 thread::spawn(move || {
                     let mut last_modified = fs::metadata(&path_clone)
                         .ok()
-                        .map(|m| m.modified().ok())
-                        .flatten();
+                        .and_then(|m| m.modified().ok());
 
                     loop {
                         thread::sleep(Duration::from_secs(1));
@@ -726,7 +725,7 @@ impl App for MarkPrompter {
                                     .spacing([0.0, 5.0])
                                     .striped(false)
                                     .show(ui, |ui| {
-                                        for (_i, line) in lines.iter().enumerate() {
+                                        for line in lines.iter() {
                                             let trimmed = line.trim();
 
                                             // Detect heading level and extract text without #
