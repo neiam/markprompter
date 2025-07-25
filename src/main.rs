@@ -8,6 +8,7 @@ use comrak::{markdown_to_html, ComrakOptions};
 use serde::{Deserialize, Serialize};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
+use egui_material_icons::icons::*;
 
 // Theme configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -96,6 +97,9 @@ impl Default for MarkPrompter {
 
 impl MarkPrompter {
     fn new(cc: &CreationContext) -> Self {
+        // Initialize material icons
+        egui_material_icons::initialize(&cc.egui_ctx);
+        
         // Configure fonts
         let mut style = (*cc.egui_ctx.style()).clone();
         style.text_styles = [
@@ -109,10 +113,16 @@ impl MarkPrompter {
         
         // Load themes from config file if it exists
         let mut app = Self::default();
-        if let Ok(themes) = load_themes() {
-            app.available_themes = themes;
-            if !app.available_themes.is_empty() {
-                app.current_theme = app.available_themes[0].clone();
+        match load_themes() {
+            Ok(themes) => {
+                println!("Themes loaded successfully: {} themes", themes.len());
+                app.available_themes = themes;
+                if !app.available_themes.is_empty() {
+                    app.current_theme = app.available_themes[0].clone();
+                }
+            }
+            Err(e) => {
+                println!("Error loading themes: {}", e);
             }
         }
         
@@ -271,18 +281,18 @@ impl App for MarkPrompter {
         ctx.set_style(style);
         
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.set_height(ui.available_height());
-                
-                // Controls panel
-                ui.vertical(|ui| {
-                    ui.set_width(200.0);
-                    ui.set_height(ui.available_height());
-                    ui.heading("MarkPrompter");
-                    ui.add_space(10.0);
+            // Use columns with custom width ratio - give more space to controls panel
+            ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui| {
+                ui.allocate_ui_with_layout(
+                    egui::vec2(300.0, ui.available_height()),
+                    egui::Layout::top_down(egui::Align::LEFT),
+                    |ui| {
+                        // Left column - Controls panel
+                        ui.heading("MP");
+                        ui.add_space(10.0);
                     
                     // File controls
-                    if ui.button("Open File").clicked() {
+                    if ui.add_sized([80.0, 80.0], egui::Button::new(egui::RichText::new(format!("{} ", ICON_FOLDER_OPEN)).size(28.0))).clicked() {
                         self.open_file();
                     }
                     
@@ -294,27 +304,36 @@ impl App for MarkPrompter {
                     ui.heading("Playback");
                     ui.add_space(5.0);
                     
-                    if ui.button(if self.is_playing { "⏸ Pause" } else { "▶ Play" }).clicked() {
-                        self.is_playing = !self.is_playing;
-                        self.last_update = Instant::now();
-                    }
-                    
-                    ui.add_space(5.0);
-                    
-                    if ui.button("⏮ Restart").clicked() {
-                        self.scroll_position = 0.0;
-                    }
+                    ui.horizontal(|ui| {
+                        let play_pause_text = if self.is_playing {
+                            egui::RichText::new(ICON_PAUSE).size(48.0)
+                        } else {
+                            egui::RichText::new(ICON_PLAY_ARROW).size(48.0)
+                        };
+                        
+                        if ui.add_sized([80.0, 80.0], egui::Button::new(play_pause_text)).clicked() {
+                            self.is_playing = !self.is_playing;
+                            self.last_update = Instant::now();
+                        }
+                        
+                        if ui.add_sized([80.0, 80.0], egui::Button::new(egui::RichText::new(ICON_SKIP_PREVIOUS).size(48.0))).clicked() {
+                            self.scroll_position = 0.0;
+                            self.last_checked_heading_idx = 0;
+                        }
+                    });
                     
                     ui.add_space(10.0);
                     
                     // Speed controls
                     ui.label("Scroll Speed");
                     ui.horizontal(|ui| {
-                        if ui.small_button("-").clicked() {
+                        if ui.add_sized([60.0, 60.0], egui::Button::new(egui::RichText::new(ICON_REMOVE).size(36.0))).clicked() {
                             self.scroll_speed = (self.scroll_speed - 10.0).max(10.0);
                         }
-                        ui.label(format!("{}px/s", self.scroll_speed as i32));
-                        if ui.small_button("+").clicked() {
+                        ui.add_space(10.0);
+                        ui.label(egui::RichText::new(format!("{}px/s", self.scroll_speed as i32)).size(20.0));
+                        ui.add_space(10.0);
+                        if ui.add_sized([60.0, 60.0], egui::Button::new(egui::RichText::new(ICON_ADD).size(36.0))).clicked() {
                             self.scroll_speed = (self.scroll_speed + 10.0).min(500.0);
                         }
                     });
@@ -331,10 +350,10 @@ impl App for MarkPrompter {
                     
                     if self.pause_at_headings {
                         ui.horizontal(|ui| {
-                            ui.label("Pause Duration:");
+                            ui.label("Duration:");
                             ui.add(egui::Slider::new(&mut self.heading_pause_duration, 0.5..=10.0)
                                 .suffix("s")
-                                .text("seconds"));
+                                .text("sec"));
                         });
                     }
                     
@@ -344,12 +363,13 @@ impl App for MarkPrompter {
                     
                     // Font size
                     ui.horizontal(|ui| {
-                        ui.label("Font Size:");
-                        if ui.small_button("-").clicked() {
+                        if ui.add_sized([50.0, 50.0], egui::Button::new(egui::RichText::new(ICON_TEXT_DECREASE).size(32.0))).clicked() {
                             self.font_size = (self.font_size - 1.0).max(8.0);
                         }
-                        ui.label(format!("{:.0}px", self.font_size));
-                        if ui.small_button("+").clicked() {
+                        ui.add_space(10.0);
+                        ui.label(egui::RichText::new(format!("{:.0}px", self.font_size)).size(20.0));
+                        ui.add_space(10.0);
+                        if ui.add_sized([50.0, 50.0], egui::Button::new(egui::RichText::new(ICON_TEXT_INCREASE).size(32.0))).clicked() {
                             self.font_size = (self.font_size + 1.0).min(72.0);
                         }
                     });
@@ -374,15 +394,15 @@ impl App for MarkPrompter {
                                 }
                             }
                         });
-                });
+                    });
                 
                 ui.separator();
                 
-                // Content panel
-                ui.vertical(|ui| {
-                    ui.set_width(ui.available_width());
-                    ui.set_height(ui.available_height());
-                    
+                // Right column - Content panel
+                ui.allocate_ui_with_layout(
+                    egui::vec2(ui.available_width(), ui.available_height()),
+                    egui::Layout::top_down(egui::Align::LEFT),
+                    |ui| {
                     if let Some(file) = &self.current_file {
                         ui.heading(file.file_name().unwrap_or_default().to_string_lossy().to_string());
                     }
@@ -393,11 +413,16 @@ impl App for MarkPrompter {
                         self.current_theme.text_color[2]
                     );
                     
+                    // Fill remaining height with scroll area
+                    let available_size = ui.available_size();
                     let scroll_area = ScrollArea::vertical()
-                        .max_height(ui.available_height())
+                        .max_height(available_size.y)
+                        .max_width(available_size.x)
                         .vertical_scroll_offset(self.scroll_position);
                     
                     let output = scroll_area.show(ui, |ui| {
+                        ui.set_width(available_size.x - 20.0); // Account for scrollbar
+                        
                         // Calculate time delta for scrolling
                         let now = Instant::now();
                         let dt = now.duration_since(self.last_update).as_secs_f32();
@@ -416,14 +441,29 @@ impl App for MarkPrompter {
                                     for (_i, line) in lines.iter().enumerate() {
                                         let trimmed = line.trim();
                                         
-                                        // Detect heading level
+                                        // Detect heading level and extract text without #
                                         let mut heading_level = 0;
-                                        if trimmed.starts_with("# ") { heading_level = 1; }
-                                        else if trimmed.starts_with("## ") { heading_level = 2; }
-                                        else if trimmed.starts_with("### ") { heading_level = 3; }
-                                        else if trimmed.starts_with("#### ") { heading_level = 4; }
-                                        else if trimmed.starts_with("##### ") { heading_level = 5; }
-                                        else if trimmed.starts_with("###### ") { heading_level = 6; }
+                                        let display_text = if trimmed.starts_with("# ") { 
+                                            heading_level = 1;
+                                            trimmed.trim_start_matches("# ")
+                                        } else if trimmed.starts_with("## ") { 
+                                            heading_level = 2;
+                                            trimmed.trim_start_matches("## ")
+                                        } else if trimmed.starts_with("### ") { 
+                                            heading_level = 3;
+                                            trimmed.trim_start_matches("### ")
+                                        } else if trimmed.starts_with("#### ") { 
+                                            heading_level = 4;
+                                            trimmed.trim_start_matches("#### ")
+                                        } else if trimmed.starts_with("##### ") { 
+                                            heading_level = 5;
+                                            trimmed.trim_start_matches("##### ")
+                                        } else if trimmed.starts_with("###### ") { 
+                                            heading_level = 6;
+                                            trimmed.trim_start_matches("###### ")
+                                        } else {
+                                            *line
+                                        };
                                         
                                         // Apply appropriate color and styling based on whether it's a heading
                                         if heading_level > 0 && heading_level <= self.current_theme.heading_colors.len() {
@@ -436,10 +476,12 @@ impl App for MarkPrompter {
                                             );
                                             
                                             // Adjust font size based on heading level
-                                            let heading_size = self.font_size * (1.5 - (heading_level as f32 * 0.1));
+                                            // H1: 2.0x, H2: 1.8x, H3: 1.6x, H4: 1.4x, H5: 1.2x, H6: 1.1x
+                                            let size_multipliers = [2.0, 1.8, 1.6, 1.4, 1.2, 1.1];
+                                            let heading_size = self.font_size * size_multipliers[idx];
                                             ui.style_mut().text_styles.get_mut(&egui::TextStyle::Body).unwrap().size = heading_size;
                                             
-                                            ui.colored_label(heading_color, *line);
+                                            ui.colored_label(heading_color, display_text);
                                             ui.end_row();
                                             
                                             // Reset font size to default
@@ -525,10 +567,102 @@ fn load_themes() -> Result<Vec<Theme>, Box<dyn std::error::Error>> {
                     [38, 139, 210],  // H6
                 ],
             },
+            Theme {
+                name: "After Dark".to_string(),
+                background_color: [32, 29, 101],  // base-100: #201D65
+                text_color: [172, 171, 213],      // secondary: #ACABD5
+                heading_colors: vec![
+                    [254, 243, 199], // accent: #fef3c7 - H1
+                    [123, 121, 181], // primary: #7B79B5 - H2
+                    [172, 171, 213], // secondary: #ACABD5 - H3
+                    [125, 211, 252], // info: #7dd3fc - H4
+                    [167, 243, 208], // success: #a7f3d0 - H5
+                    [254, 240, 138], // warning: #fef08a - H6
+                ],
+            },
+            Theme {
+                name: "Her".to_string(),
+                background_color: [101, 29, 29],  // base-100: #651d1d
+                text_color: [213, 171, 171],      // secondary: #d5abab
+                heading_colors: vec![
+                    [254, 243, 199], // accent: #fef3c7 - H1
+                    [181, 121, 121], // primary: #b57979 - H2
+                    [213, 171, 171], // secondary: #d5abab - H3
+                    [125, 211, 252], // info: #7dd3fc - H4
+                    [167, 243, 208], // success: #a7f3d0 - H5
+                    [254, 240, 138], // warning: #fef08a - H6
+                ],
+            },
+            Theme {
+                name: "Forest".to_string(),
+                background_color: [5, 46, 22],    // base-100: #052e16
+                text_color: [134, 239, 172],      // secondary: #86efac
+                heading_colors: vec![
+                    [254, 243, 199], // accent: #fef3c7 - H1
+                    [74, 222, 128],  // primary: #4ade80 - H2
+                    [134, 239, 172], // secondary: #86efac - H3
+                    [125, 211, 252], // info: #7dd3fc - H4
+                    [167, 243, 208], // success: #a7f3d0 - H5
+                    [254, 240, 138], // warning: #fef08a - H6
+                ],
+            },
+            Theme {
+                name: "Sky".to_string(),
+                background_color: [8, 47, 73],     // base-100: #082f49
+                text_color: [125, 211, 252],       // secondary: #7dd3fc
+                heading_colors: vec![
+                    [254, 243, 199], // accent: #fef3c7 - H1
+                    [56, 189, 248],  // primary: #38bdf8 - H2
+                    [125, 211, 252], // secondary: #7dd3fc - H3
+                    [167, 243, 208], // success: #a7f3d0 - H4
+                    [254, 240, 138], // warning: #fef08a - H5
+                    [252, 165, 165], // error: #fca5a5 - H6
+                ],
+            },
+            Theme {
+                name: "Clays".to_string(),
+                background_color: [69, 26, 3],     // base-100: #451a03
+                text_color: [245, 158, 11],        // secondary: #f59e0b
+                heading_colors: vec![
+                    [254, 243, 199], // accent: #fef3c7 - H1
+                    [217, 119, 6],   // primary: #d97706 - H2
+                    [245, 158, 11],  // secondary: #f59e0b - H3
+                    [125, 211, 252], // info: #7dd3fc - H4
+                    [167, 243, 208], // success: #a7f3d0 - H5
+                    [254, 240, 138], // warning: #fef08a - H6
+                ],
+            },
+            Theme {
+                name: "Stones".to_string(),
+                background_color: [41, 37, 36],    // base-100: #292524
+                text_color: [156, 163, 175],       // secondary: #9ca3af
+                heading_colors: vec![
+                    [254, 243, 199], // accent: #fef3c7 - H1
+                    [107, 114, 128], // primary: #6b7280 - H2
+                    [156, 163, 175], // secondary: #9ca3af - H3
+                    [125, 211, 252], // info: #7dd3fc - H4
+                    [167, 243, 208], // success: #a7f3d0 - H5
+                    [254, 240, 138], // warning: #fef08a - H6
+                ],
+            },
         ];
         
-        let toml_string = toml::to_string(&default_themes)?;
+        println!("Attempting to create themes.toml file...");
+        
+        // Wrap themes in a structure for TOML serialization
+        #[derive(Serialize)]
+        struct ThemesConfig {
+            themes: Vec<Theme>,
+        }
+        
+        let config = ThemesConfig {
+            themes: default_themes.clone(),
+        };
+        
+        let toml_string = toml::to_string(&config)?;
+        println!("TOML string generated successfully");
         fs::write(config_path, toml_string)?;
+        println!("themes.toml file created successfully");
         return Ok(default_themes);
     }
     
@@ -540,17 +674,9 @@ fn load_themes() -> Result<Vec<Theme>, Box<dyn std::error::Error>> {
         themes: Vec<Theme>,
     }
     
-    // Try parsing as an array of themes first
-    let themes: Result<Vec<Theme>, _> = toml::from_str(&toml_str);
-    
-    match themes {
-        Ok(themes) => Ok(themes),
-        Err(_) => {
-            // Try parsing with the wrapper structure
-            let wrapper: ThemesWrapper = toml::from_str(&toml_str)?;
-            Ok(wrapper.themes)
-        }
-    }
+    // Parse with the wrapper structure
+    let wrapper: ThemesWrapper = toml::from_str(&toml_str)?;
+    Ok(wrapper.themes)
 }
 
 fn main() -> Result<(), eframe::Error> {
@@ -564,6 +690,6 @@ fn main() -> Result<(), eframe::Error> {
     eframe::run_native(
         "MarkPrompter",
         options,
-        Box::new(|cc| Box::new(MarkPrompter::new(cc)))
+        Box::new(|cc| Ok(Box::new(MarkPrompter::new(cc))))
     )
 }
