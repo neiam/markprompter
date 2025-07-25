@@ -113,11 +113,25 @@ impl MarkPrompter {
         
         // Load themes from config file if it exists
         let mut app = Self::default();
-        match load_themes() {
-            Ok(themes) => {
+        match load_themes_and_preference() {
+            Ok((themes, saved_theme)) => {
                 println!("Themes loaded successfully: {} themes", themes.len());
                 app.available_themes = themes;
-                if !app.available_themes.is_empty() {
+                
+                // Load saved theme preference
+                if let Some(saved_theme_name) = saved_theme {
+                    // Try to find and set the saved theme
+                    if let Some(saved_theme) = app.available_themes.iter()
+                        .find(|t| t.name == saved_theme_name.trim())
+                        .cloned() {
+                        println!("Restored saved theme: {}", saved_theme.name);
+                        app.current_theme = saved_theme;
+                    } else if !app.available_themes.is_empty() {
+                        // Fallback to first theme if saved theme not found
+                        app.current_theme = app.available_themes[0].clone();
+                    }
+                } else if !app.available_themes.is_empty() {
+                    // No saved preference, use first theme
                     app.current_theme = app.available_themes[0].clone();
                 }
             }
@@ -127,6 +141,162 @@ impl MarkPrompter {
         }
         
         app
+    }
+    
+    // Parse and render inline markdown formatting
+    fn render_formatted_text(&self, ui: &mut egui::Ui, text: &str, base_color: Color32, base_size: f32) {
+        use egui::{FontId, TextFormat, text::LayoutJob};
+        
+        let mut job = LayoutJob::default();
+        let mut chars = text.chars().peekable();
+        let mut current_text = String::new();
+        
+        while let Some(ch) = chars.next() {
+            match ch {
+                '*' | '_' => {
+                    // Check for bold or italic
+                    if let Some(&next_ch) = chars.peek() {
+                        if next_ch == ch {
+                            // Double marker - bold
+                            chars.next(); // consume second marker
+                            
+                            // Add any pending text
+                            if !current_text.is_empty() {
+                                job.append(&current_text, 0.0, TextFormat {
+                                    font_id: FontId::proportional(base_size),
+                                    color: base_color,
+                                    ..Default::default()
+                                });
+                                current_text.clear();
+                            }
+                            
+                            // Find closing markers
+                            let mut content = String::new();
+                            let mut found_closing = false;
+                            
+                            while let Some(inner_ch) = chars.next() {
+                                if inner_ch == ch {
+                                    if let Some(&next_inner) = chars.peek() {
+                                        if next_inner == ch {
+                                            chars.next(); // consume second closing marker
+                                            found_closing = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                content.push(inner_ch);
+                            }
+                            
+                            if found_closing {
+                                // Bold text - use larger size to simulate bold
+                                job.append(&content, 0.0, TextFormat {
+                                    font_id: FontId::proportional(base_size * 1.15),
+                                    color: base_color,
+                                    ..Default::default()
+                                });
+                            } else {
+                                // No closing found, treat as normal text
+                                current_text.push(ch);
+                                current_text.push(ch);
+                                current_text.push_str(&content);
+                            }
+                        } else {
+                            // Single marker - italic
+                            // Add any pending text
+                            if !current_text.is_empty() {
+                                job.append(&current_text, 0.0, TextFormat {
+                                    font_id: FontId::proportional(base_size),
+                                    color: base_color,
+                                    ..Default::default()
+                                });
+                                current_text.clear();
+                            }
+                            
+                            // Find closing marker
+                            let mut content = String::new();
+                            let mut found_closing = false;
+                            
+                            while let Some(inner_ch) = chars.next() {
+                                if inner_ch == ch {
+                                    found_closing = true;
+                                    break;
+                                }
+                                content.push(inner_ch);
+                            }
+                            
+                            if found_closing {
+                                // Italic text - use slightly smaller and different color
+                                job.append(&content, 0.0, TextFormat {
+                                    font_id: FontId::proportional(base_size * 0.95),
+                                    color: Color32::from_rgb(
+                                        (base_color.r() as f32 * 0.9) as u8,
+                                        (base_color.g() as f32 * 0.9) as u8,
+                                        (base_color.b() as f32 * 0.9) as u8,
+                                    ),
+                                    italics: true,
+                                    ..Default::default()
+                                });
+                            } else {
+                                // No closing found, treat as normal text
+                                current_text.push(ch);
+                                current_text.push_str(&content);
+                            }
+                        }
+                    } else {
+                        current_text.push(ch);
+                    }
+                }
+                '`' => {
+                    // Code formatting
+                    if !current_text.is_empty() {
+                        job.append(&current_text, 0.0, TextFormat {
+                            font_id: FontId::proportional(base_size),
+                            color: base_color,
+                            ..Default::default()
+                        });
+                        current_text.clear();
+                    }
+                    
+                    let mut content = String::new();
+                    let mut found_closing = false;
+                    
+                    while let Some(inner_ch) = chars.next() {
+                        if inner_ch == '`' {
+                            found_closing = true;
+                            break;
+                        }
+                        content.push(inner_ch);
+                    }
+                    
+                    if found_closing {
+                        // Code text with background
+                        job.append(&content, 0.0, TextFormat {
+                            font_id: FontId::monospace(base_size * 0.9),
+                            color: base_color,
+                            background: Color32::from_rgba_premultiplied(80, 80, 80, 40),
+                            ..Default::default()
+                        });
+                    } else {
+                        current_text.push('`');
+                        current_text.push_str(&content);
+                    }
+                }
+                _ => {
+                    current_text.push(ch);
+                }
+            }
+        }
+        
+        // Add any remaining text
+        if !current_text.is_empty() {
+            job.append(&current_text, 0.0, TextFormat {
+                font_id: FontId::proportional(base_size),
+                color: base_color,
+                ..Default::default()
+            });
+        }
+        
+        ui.label(job);
     }
     
     fn open_file(&mut self) {
@@ -391,6 +561,10 @@ impl App for MarkPrompter {
                                     theme.name.clone()
                                 ).clicked() {
                                     self.current_theme = theme.clone();
+                                    // Save theme preference
+                                    if let Err(e) = save_theme_preference(&theme.name) {
+                                        eprintln!("Failed to save theme preference: {}", e);
+                                    }
                                 }
                             }
                         });
@@ -477,6 +651,7 @@ impl App for MarkPrompter {
                                             
                                             // Adjust font size based on heading level
                                             // H1: 2.0x, H2: 1.8x, H3: 1.6x, H4: 1.4x, H5: 1.2x, H6: 1.1x
+                                            // let size_multipliers = [2.0, 1.8, 1.6, 1.4, 1.2, 1.1];
                                             let size_multipliers = [2.0, 1.8, 1.6, 1.4, 1.2, 1.1];
                                             let heading_size = self.font_size * size_multipliers[idx];
                                             ui.style_mut().text_styles.get_mut(&egui::TextStyle::Body).unwrap().size = heading_size;
@@ -487,8 +662,8 @@ impl App for MarkPrompter {
                                             // Reset font size to default
                                             ui.style_mut().text_styles.get_mut(&egui::TextStyle::Body).unwrap().size = self.font_size;
                                         } else {
-                                            // Regular text - use the default text color
-                                            ui.colored_label(text_color, *line);
+                                            // Regular text - use the formatted text renderer
+                                            self.render_formatted_text(ui, display_text, text_color, self.font_size);
                                             ui.end_row();
                                         }
                                     }
@@ -522,12 +697,92 @@ impl App for MarkPrompter {
     }
 }
 
-// Load themes from a TOML file
-fn load_themes() -> Result<Vec<Theme>, Box<dyn std::error::Error>> {
+// Save theme preference to themes.toml
+fn save_theme_preference(theme_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let config_path = "themes.toml";
+    
+    // Read the current themes
+    let themes = load_themes_without_preference()?;
+    
+    // Create the config structure with preference
+    #[derive(Serialize)]
+    struct ThemesConfigWithPreference {
+        selected_theme: String,
+        themes: Vec<Theme>,
+    }
+    
+    let config = ThemesConfigWithPreference {
+        selected_theme: theme_name.to_string(),
+        themes,
+    };
+    
+    let toml_string = toml::to_string(&config)?;
+    fs::write(config_path, toml_string)?;
+    Ok(())
+}
+
+// Load themes and preference from a TOML file
+fn load_themes_and_preference() -> Result<(Vec<Theme>, Option<String>), Box<dyn std::error::Error>> {
     let config_path = "themes.toml";
     if !std::path::Path::new(config_path).exists() {
         // Create a default theme file if it doesn't exist
-        let default_themes = vec![
+        let default_themes = create_default_themes();
+        
+        println!("Attempting to create themes.toml file...");
+        
+        // Wrap themes in a structure for TOML serialization
+        #[derive(Serialize)]
+        struct ThemesConfig {
+            selected_theme: Option<String>,
+            themes: Vec<Theme>,
+        }
+        
+        let config = ThemesConfig {
+            selected_theme: None,
+            themes: default_themes.clone(),
+        };
+        
+        let toml_string = toml::to_string(&config)?;
+        println!("TOML string generated successfully");
+        fs::write(config_path, toml_string)?;
+        println!("themes.toml file created successfully");
+        return Ok((default_themes, None));
+    }
+    
+    let toml_str = fs::read_to_string(config_path)?;
+    
+    // Parse TOML with optional selected_theme field
+    #[derive(Deserialize)]
+    struct ThemesWrapperWithPreference {
+        selected_theme: Option<String>,
+        themes: Vec<Theme>,
+    }
+    
+    // Try parsing with selected_theme field
+    match toml::from_str::<ThemesWrapperWithPreference>(&toml_str) {
+        Ok(wrapper) => Ok((wrapper.themes, wrapper.selected_theme)),
+        Err(_) => {
+            // Fallback: try parsing without selected_theme (old format)
+            #[derive(Deserialize)]
+            struct ThemesWrapper {
+                themes: Vec<Theme>,
+            }
+            
+            let wrapper: ThemesWrapper = toml::from_str(&toml_str)?;
+            Ok((wrapper.themes, None))
+        }
+    }
+}
+
+// Load themes without preference (for saving)
+fn load_themes_without_preference() -> Result<Vec<Theme>, Box<dyn std::error::Error>> {
+    let (themes, _) = load_themes_and_preference()?;
+    Ok(themes)
+}
+
+// Helper function to create default themes
+fn create_default_themes() -> Vec<Theme> {
+    vec![
             Theme {
                 name: "Light".to_string(),
                 background_color: [240, 240, 245],
@@ -645,38 +900,7 @@ fn load_themes() -> Result<Vec<Theme>, Box<dyn std::error::Error>> {
                     [254, 240, 138], // warning: #fef08a - H6
                 ],
             },
-        ];
-        
-        println!("Attempting to create themes.toml file...");
-        
-        // Wrap themes in a structure for TOML serialization
-        #[derive(Serialize)]
-        struct ThemesConfig {
-            themes: Vec<Theme>,
-        }
-        
-        let config = ThemesConfig {
-            themes: default_themes.clone(),
-        };
-        
-        let toml_string = toml::to_string(&config)?;
-        println!("TOML string generated successfully");
-        fs::write(config_path, toml_string)?;
-        println!("themes.toml file created successfully");
-        return Ok(default_themes);
-    }
-    
-    let toml_str = fs::read_to_string(config_path)?;
-    
-    // Parse TOML
-    #[derive(Deserialize)]
-    struct ThemesWrapper {
-        themes: Vec<Theme>,
-    }
-    
-    // Parse with the wrapper structure
-    let wrapper: ThemesWrapper = toml::from_str(&toml_str)?;
-    Ok(wrapper.themes)
+        ]
 }
 
 fn main() -> Result<(), eframe::Error> {

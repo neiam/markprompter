@@ -1,62 +1,117 @@
 # MarkPrompter
 
-A Rust-based markdown file viewer with automatic scrolling capabilities, built with egui.
+A professional Rust-based markdown teleprompter with automatic scrolling, live preview, and rich text formatting support. Built with egui for smooth, cross-platform performance.
 
 ## Features
 
 ### Core Functionality
-- **Markdown File Viewing**: Load and display markdown files with proper formatting
-- **Automatic Scrolling**: Continuously scroll through content at adjustable speeds
+- **Markdown File Viewing**: Load and display markdown files with rich formatting
+- **Automatic Scrolling**: Smooth, continuous scrolling at adjustable speeds
 - **Live File Reloading**: Automatically updates content when the file changes
+- **Rich Text Formatting**: Full support for markdown inline formatting
+
+### Markdown Support
+- **Headings (H1-H6)**: Displayed without `#` symbols with progressive sizing
+  - H1: 2.0x base font size
+  - H2: 1.8x base font size
+  - H3: 1.6x base font size
+  - H4: 1.4x base font size
+  - H5: 1.2x base font size
+  - H6: 1.1x base font size
+- **Bold Text**: `**text**` or `__text__` - rendered with larger font size
+- **Italic Text**: `*text*` or `_text_` - rendered with subtle styling
+- **Inline Code**: `` `code` `` - monospace font with background highlight
 
 ### Playback Controls
-- **Play/Pause**: Start and stop the automatic scrolling
-- **Restart**: Jump back to the beginning of the document
-- **Speed Control**: Adjust scrolling speed from 10-500 pixels per second
+- **Play/Pause**: Start and stop automatic scrolling with visual button feedback
+- **Restart**: Jump back to the beginning of the document instantly
+- **Speed Control**: Fine-tune scrolling speed from 10-500 pixels per second
+- **Smooth Scrolling**: Frame-rate independent smooth motion
 
 ### Advanced Features
 - **Pause at Headings**: Automatically pause scrolling when reaching markdown headings
-- **Auto-Restart**: Automatically restart from the beginning when reaching the end
-- **Adjustable Font Size**: Change the display font size for better readability
+  - Configurable pause duration (0.5-10 seconds)
+  - Smart detection of all heading levels
+- **Auto-Restart**: Loop content continuously for unattended presentations
+- **Adjustable Font Size**: Scale text from 8-72px for optimal readability
 
-### Theme Support
-- **Multiple Themes**: Comes with Light, Dark, and Solarized themes
-- **TOML Configuration**: Themes are loaded from a `themes.toml` file
-- **Custom Colors**: Each theme supports custom background, text, and heading colors
+### Theme System
+- **9 Built-in Themes**: 
+  - Light - Clean and bright for well-lit environments
+  - Dark - Easy on the eyes for extended use
+  - Solarized - Popular color scheme with excellent contrast
+  - After Dark - Purple-based theme with vibrant accents
+  - Her - Warm red tones inspired by the movie
+  - Forest - Natural green palette
+  - Sky - Cool blue theme
+  - Clays - Earthy brown tones
+  - Stones - Neutral gray theme
+- **Theme Persistence**: Your selected theme is automatically saved and restored
+- **TOML Configuration**: Easy theme customization via `themes.toml`
+- **Per-Heading Colors**: Each heading level can have its own color
+
+### User Interface
+- **Clean Layout**: Intuitive control panel with clear visual hierarchy
+- **Material Icons**: Professional iconography throughout the interface
+- **Responsive Design**: Minimum window size of 800x600, scales to any resolution
+- **Real-time Preview**: See changes instantly as you adjust settings
 
 ## Usage
 
-1. Click "Open File" to select a markdown file
-2. Click "Play" to start automatic scrolling
-3. Adjust settings as needed using the control panel
+1. **Launch the application**: Run `cargo run` or the compiled executable
+2. **Load a markdown file**: Click the folder icon to select your `.md` file
+3. **Start presenting**: Click the play button to begin auto-scrolling
+4. **Customize as needed**: 
+   - Adjust scroll speed with +/- buttons
+   - Change font size for your audience
+   - Select a theme that matches your environment
+   - Enable heading pauses for emphasis
+
+## Keyboard Shortcuts
+
+- **Space**: Play/Pause (coming soon)
+- **R**: Restart from beginning (coming soon)
+- **+/-**: Adjust font size (coming soon)
 
 ## Building
 
-```bash
-cargo build --release
-```
+### Prerequisites
+- Rust 1.70 or later
+- Cargo package manager
 
-## Running
+### Build Commands
 
 ```bash
+# Development build
+cargo build
+
+# Optimized release build
+cargo run --release
+
+# Run directly
 cargo run
 ```
 
-## Theme Configuration
+## Configuration
 
-Themes are stored in `themes.toml` and follow this format:
+### Theme Configuration
+
+Themes are stored in `themes.toml` with the following structure:
 
 ```toml
+# Selected theme is saved here
+selected_theme = "Dark"
+
 [[themes]]
-name = "My Theme"
-background_color = [40, 44, 52]
-text_color = [220, 223, 228]
+name = "My Custom Theme"
+background_color = [40, 44, 52]      # RGB values
+text_color = [220, 223, 228]         # RGB values
 heading_colors = [
-    [255, 180, 100], # H1
-    [230, 160, 90],  # H2
-    [210, 140, 80],  # H3
-    [190, 120, 70],  # H4
-    [170, 100, 60],  # H5
-    [150, 80, 50],   # H6
+    [255, 180, 100],  # H1 color
+    [230, 160, 90],   # H2 color
+    [210, 140, 80],   # H3 color
+    [190, 120, 70],   # H4 color
+    [170, 100, 60],   # H5 color
+    [150, 80, 50],    # H6 color
 ]
 ```
