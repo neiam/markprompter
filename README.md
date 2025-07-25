@@ -76,8 +76,15 @@ A professional Rust-based markdown teleprompter with automatic scrolling, live p
 ## Building
 
 ### Prerequisites
-- Rust 1.70 or later
-- Cargo package manager
+- MSRV: Rust 1.86
+
+### Required Packages
+
+## RPM
+gtk3-devel gdk-pixbuf-devel pango-devel
+
+## DEB
+gtk3-dev gdk-pixbuf-dev pango-dev
 
 ### Build Commands
 

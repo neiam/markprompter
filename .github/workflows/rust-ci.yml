@@ -208,16 +208,9 @@ jobs:
 
       - name: Create release notes
         run: |
-          echo "# Git Friends Release ${GITHUB_REF_NAME}" > release_notes.md
+          echo "# MarkPrompter Release ${GITHUB_REF_NAME}" > release_notes.md
           echo "" >> release_notes.md
           echo "## Changes in this release" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "This release includes the following binaries:" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "- \`gf-hook\`: Git hook for commit message enhancement" >> release_notes.md
-          echo "- \`gf-server\`: Main Git Friends server" >> release_notes.md
-          echo "- \`gf-irc\`: IRC client component" >> release_notes.md
-          echo "- \`gf-tester\`: Testing and validation tool" >> release_notes.md
           echo "" >> release_notes.md
           echo "## Supported Platforms" >> release_notes.md
           echo "" >> release_notes.md
@@ -231,14 +224,7 @@ jobs:
           echo "1. Download the appropriate archive for your platform" >> release_notes.md
           echo "2. Extract the binaries" >> release_notes.md
           echo "3. Place them in your PATH" >> release_notes.md
-          echo "4. Configure \`git-friends.toml\` as needed" >> release_notes.md
           echo "" >> release_notes.md
-          echo "## Docker Image" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "A Docker image is also available at:" >> release_notes.md
-          echo "\`\`\`" >> release_notes.md
-          echo "ghcr.io/${{ github.repository }}:${GITHUB_REF_NAME}" >> release_notes.md
-          echo "\`\`\`" >> release_notes.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
