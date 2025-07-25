@@ -514,7 +514,7 @@ impl App for MarkPrompter {
                     egui::Layout::top_down(egui::Align::LEFT),
                     |ui| {
                         // Left column - Controls panel
-                        ui.colored_label(text_color_z,RichText::new("MarkPrompter", ).size(32.0));
+                        ui.colored_label(text_color_z, RichText::new("MarkPrompter").size(32.0));
 
                         ui.add_space(10.0);
 
@@ -808,7 +808,10 @@ impl App for MarkPrompter {
                                         }
                                     });
                             } else {
-                                ui.colored_label(text_color_z, RichText::new("Open a markdown file to begin.").size(48.0));
+                                ui.colored_label(
+                                    text_color_z,
+                                    RichText::new("Open a markdown file to begin.").size(48.0),
+                                );
                             }
                         });
 
