@@ -143,10 +143,7 @@ jobs:
       - name: Strip binary (Unix)
         if: matrix.os != 'windows-latest'
         run: |
-          strip target/release/gf-hook${{ matrix.binary_ext }}
-          strip target/release/gf-server${{ matrix.binary_ext }}
-          strip target/release/gf-irc${{ matrix.binary_ext }}
-          strip target/release/gf-tester${{ matrix.binary_ext }}
+          strip target/release/markprompter${{ matrix.binary_ext }}
 
       - name: Create release archive (Unix)
         if: matrix.os != 'windows-latest'
