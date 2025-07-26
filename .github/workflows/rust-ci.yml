@@ -149,14 +149,14 @@ jobs:
         if: matrix.os != 'windows-latest'
         run: |
           cd target/release
-          tar -czf ../../${{ matrix.name }} gf-hook gf-server gf-irc gf-tester
+          tar -czf ../../${{ matrix.name }} markprompter
           cd ../..
 
       - name: Create release archive (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           cd target/release
-          7z a ../../${{ matrix.name }} gf-hook.exe gf-server.exe gf-irc.exe gf-tester.exe
+          7z a ../../${{ matrix.name }} markprompter.exe
           cd ../..
 
       - name: Upload release archive
